@@ -1,0 +1,9 @@
+**************************************************
+**                config file                   **
+**************************************************
+
+RTGWidth=3000
+RTGHeight=1500
+YUVFilePath=.\quanjing.yuv
+SightAimLambda=120
+SightAimPhi=40
