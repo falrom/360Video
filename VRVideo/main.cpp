@@ -29,8 +29,16 @@ int main(int argc, char *argv[])
 	cout << "新的视线焦点：   " << "(" << cVRP.getAim().lam << " , " << cVRP.getAim().phi << ")" << endl;
 
 	cout << endl << "开始变换，请稍后..." << endl;
-	cVRP.outputYUV(".\\output.YUV");
+	cVRP.outputYUV(".\\output.yuv");
 	cout << endl << "成功！" << endl;
+
+	cout << endl << "开始生成全景播放器视角，请稍后..." << endl;
+	cVRP.perspectiveYUV(".\\show.yuv");
+	cout << endl << "成功！" << endl;
+
+	cout << endl << "测试中..." << endl;
+	cVRP.outputOrigYUV();
+	cout << endl << "测试完毕。" << endl;
 
 	system("PAUSE");
 	return 0;

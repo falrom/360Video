@@ -12,9 +12,10 @@
 #define AIM_PHI			"SightAimPhi"						// > 视线中央点的球坐标的phi纬度
 
 // > 变量宏定义
-#define SIZE_OF_RTG		(m_uiRTGWidth * m_uiRTGHeight)		// > 矩形图像的大小。长乘宽。
-#define RADIUS			(m_uiRTGWidth / 360.0)				// > 定义坐标变换用到的球半径
 #define PI				3.14159265							// > 定义派
+#define SIZE_OF_RTG		(m_uiRTGWidth * m_uiRTGHeight)		// > 矩形图像的大小。长乘宽。
+#define RADIUS_DEG		(m_uiRTGWidth / 360.0)				// > 定义坐标变换用到的球半径（角度单位：度）
+#define RADIUS_RAD		(m_uiRTGWidth / 2.0 / PI )			// > 定义坐标变换用到的球半径（角度单位：弧度）
 
 using namespace std;
 
@@ -113,11 +114,27 @@ public:
 	// > 获取YUV文件特定位置V分量
 	unsigned char getOrigV(RTGPosition position);
 	
-	// > 按照特定要求生成新的YUV文件
+	// > 按照全景图投影方式（Equirectangular）重新生成改变了中心点的新的YUV文件全景图
 	void outputYUV(string path, SPHPosition sightAim);
 
-	// > 按照特定要求生成新的YUV文件（默认使用成员m_Aim）
+	// > 按照全景图投影方式（Equirectangular）重新生成改变了中心点的新的YUV文件全景图（默认使用成员m_Aim）
 	void outputYUV(string path);
+
+	// ==================== 多种投影方式以及文件生成 ====================
+
+	// > 投影函数：透视投影 用于全景视频播放
+	SPHPosition perspective(RTGPosition position);
+
+	// > 文件生成：透视投影 用于全景视频播放
+	void perspectiveYUV(string path, int width, int height, SPHPosition sightAim);
+
+	// > 文件生成：透视投影 用于全景视频播放 <默认参数>
+	void perspectiveYUV(string path);
 	
+	// ==================== 测试、调试用函数 ====================
+
+	// > 测试函数：重新生成原YUV文件
+	void outputOrigYUV();
+
 };
 

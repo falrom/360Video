@@ -191,8 +191,8 @@ unsigned int VRPicture::position2NUM(RTGPosition position, YUVtype type)
 RTGPosition VRPicture::SPH2RTG(SPHPosition position)
 {
 	RTGPosition result;
-	result.x = (int)floor(RADIUS * position.lam);
-	result.y = (int)floor(RADIUS * position.phi);
+	result.x = (int)floor(RADIUS_DEG * position.lam);
+	result.y = (int)floor(RADIUS_DEG * position.phi);
 	return result;
 	// return RTGPosition();
 }
@@ -204,8 +204,8 @@ RTGPosition VRPicture::SPH2RTG(SPHPosition position)
 SPHPosition VRPicture::RTG2SPH(RTGPosition position)
 {
 	SPHPosition result;
-	result.lam = position.x / RADIUS;
-	result.phi = position.y / RADIUS;
+	result.lam = position.x / RADIUS_DEG;
+	result.phi = position.y / RADIUS_DEG;
 	return result;
 	// return SPHPosition();
 }
@@ -280,13 +280,18 @@ SPHPosition VRPicture::transformSPH(SPHPosition newSPHPosition, SPHPosition sigh
 	y1 = - cos(phi1) * sin(lam1);
 	z1 = sin(phi1);
 	
+	// 特殊越界情况的处理
+	double tmpCosTheta1 = x1 / r;
+	if (tmpCosTheta1 > 1) { tmpCosTheta1 = 1; }
+	if (tmpCosTheta1 < -1) { tmpCosTheta1 = -1; }
+
 	if (z1 >= 0)
 	{
-		theta1 = acos(x1 / r);
+		theta1 = acos(tmpCosTheta1);
 	}
 	else
 	{
-		theta1 = 2 * PI - acos(x1 / r);
+		theta1 = 2 * PI - acos(tmpCosTheta1);
 	}
 	theta2 = theta1 + detaphi;
 
@@ -391,7 +396,7 @@ RTGPosition VRPicture::transformRTG(RTGPosition newRTGPosition, SPHPosition sigh
 bool VRPicture::importYUV()
 {
 	// Open file.
-	fstream origYUV(m_YUVFilePath);
+	ifstream origYUV(m_YUVFilePath, ios::binary);
 	if (!origYUV.is_open())
 	{
 		throw (string("Can't open YUV file: ") + m_YUVFilePath);
@@ -437,14 +442,14 @@ unsigned char VRPicture::getOrigV(RTGPosition position)
 }
 
 /*
-> 按照视线位置在特定目录生成新的矩形YUV文件。
+> 按照视线位置在特定目录生成新的矩形YUV文件。依旧采用全景图片的球形投影方式： Equirectangular
 - path		:	生成文件的路径和名称
 - sightAim	:	视线中央的球坐标
 */
 void VRPicture::outputYUV(string path, SPHPosition sightAim)
 {
 	ofstream output;
-	output.open(path);
+	output.open(path, ios::binary);
 
 	RTGPosition tmpPosition;
 	char *tmpPC = new char;
@@ -481,11 +486,152 @@ void VRPicture::outputYUV(string path, SPHPosition sightAim)
 	output.close();
 }
 
-/*
-> 按照视线位置在特定目录生成新的矩形YUV文件。视线中央的球坐标使用成员m_Aim。
+/**
+> 按照视线位置在特定目录生成新的矩形YUV文件。依旧采用全景图片的球形投影方式： Equirectangular
+> 视线中央的球坐标使用成员m_Aim。
 - path		:	生成文件的路径
 */
 void VRPicture::outputYUV(string path)
 {
 	outputYUV(path, m_Aim);
+}
+
+/**
+> 投影函数：透视投影（perspective projection），在球心观察球面时画面的平面投影。
+> 输入投影平面某点坐标值，得到在球面上对应点的坐标值
+- position	:	在投影平面上的坐标值
+*/
+SPHPosition VRPicture::perspective(RTGPosition position)
+{
+	SPHPosition result;
+
+	double tmplam = atan(position.x / RADIUS_RAD);
+	result.lam = tmplam * 180 / PI;
+	result.phi = atan(position.y / RADIUS_RAD * cos(tmplam)) * 180 / PI;
+	// result.phi = atan(position.y / RADIUS_RAD) * 180 / PI;
+
+	return result;
+	// return SPHPosition();
+}
+
+/**
+> 文件生成：透视投影（perspective projection），在球心观察球面时画面的平面投影。
+> 生成一个特定位置为中心的矩形的YUV格式图片，投影方式为透视投影。即全景视频的播放窗口。
+- path		:	输出文件的路径和名称
+- width		:	生成图片的宽度
+- heigh		:	生成图片的高度
+- sightAim	:	中心点的球坐标
+*/
+void VRPicture::perspectiveYUV(string path, int width, int height, SPHPosition sightAim)
+{
+	// 宽高必须是偶数
+	if (( width % 2) != 0) {  width++; }
+	if ((height % 2) != 0) { height++; }
+
+	ofstream output;
+	output.open(path, ios::binary);
+
+	RTGPosition tmpPosition;
+	char *tmpPC = new char;
+
+	// Y
+	for (tmpPosition.y = (height >> 1) - 1; tmpPosition.y >= -(height >> 1); tmpPosition.y--)
+	{
+		for (tmpPosition.x = -(width >> 1); tmpPosition.x < (width >> 1); tmpPosition.x++)
+		{
+			*tmpPC = (char)getOrigY(SPH2RTG(transformSPH(perspective(tmpPosition), sightAim)));
+			// *tmpPC = (char)getOrigY(transformRTG(tmpPosition, sightAim));
+			output.write(tmpPC, 1);
+		}
+	}
+	// U
+	for (tmpPosition.y = (height >> 1) - 1; tmpPosition.y >= -(height >> 1); tmpPosition.y = tmpPosition.y - 2)
+	{
+		for (tmpPosition.x = -(width >> 1); tmpPosition.x < (width >> 1); tmpPosition.x = tmpPosition.x + 2)
+		{
+			*tmpPC = (char)getOrigU(SPH2RTG(transformSPH(perspective(tmpPosition), sightAim)));
+			// *tmpPC = (char)getOrigU(transformRTG(tmpPosition, sightAim));
+			output.write(tmpPC, 1);
+		}
+	}
+	// V
+	for (tmpPosition.y = (height >> 1) - 1; tmpPosition.y >= -(height >> 1); tmpPosition.y = tmpPosition.y - 2)
+	{
+		for (tmpPosition.x = -(width >> 1); tmpPosition.x < (width >> 1); tmpPosition.x = tmpPosition.x + 2)
+		{
+			*tmpPC = (char)getOrigV(SPH2RTG(transformSPH(perspective(tmpPosition), sightAim)));
+			// *tmpPC = (char)getOrigV(transformRTG(tmpPosition, sightAim));
+			output.write(tmpPC, 1);
+		}
+	}
+
+	delete tmpPC;
+	output.close();
+}
+
+/**
+> 文件生成：透视投影（perspective projection），在球心观察球面时画面的平面投影。
+> 生成一个特定位置为中心的矩形的YUV格式图片，投影方式为透视投影。即全景视频的播放窗口。
+> 重载。使用对象属性得到默认参数。
+- path		:	输出文件的路径和名称
+*/
+void VRPicture::perspectiveYUV(string path)
+{
+	double viewAngleWidth  = 90 * PI / 180; // DEG=>RAD
+	double viewAngleHeight = 90 * PI / 180;
+	int _width  = (int)abs(RADIUS_RAD * tan(viewAngleWidth  / 2.0));
+	int _height = (int)abs(RADIUS_RAD * tan(viewAngleHeight / 2.0));
+	_width  *= 2;
+	_height *= 2;
+
+	perspectiveYUV(path, _width, _height, m_Aim);
+}
+
+/**
+> 测试函数：依照读取数据重新生成原YUV文件，用于测试YUV文件的读取情况。
+*/
+void VRPicture::outputOrigYUV()
+{
+	ofstream output;
+	output.open(".\\outputOrig.yuv", ios::binary);
+
+	output.write((char *)m_ucOrigImageY, SIZE_OF_RTG);
+	output.write((char *)m_ucOrigImageU, SIZE_OF_RTG >> 2);
+	output.write((char *)m_ucOrigImageV, SIZE_OF_RTG >> 2);
+
+
+
+	//RTGPosition tmpPosition;
+	//char *tmpPC = new char;
+
+	//// Y
+	//for (tmpPosition.y = (m_uiRTGHeight >> 1) - 1; tmpPosition.y >= -(m_uiRTGHeight >> 1); tmpPosition.y--)
+	//{
+	//	for (tmpPosition.x = -(m_uiRTGWidth >> 1); tmpPosition.x < (m_uiRTGWidth >> 1); tmpPosition.x++)
+	//	{
+	//		*tmpPC = (char)getOrigY(transformRTG(tmpPosition, sightAim));
+	//		output.write(tmpPC, 1);
+	//	}
+	//}
+	//// U
+	//for (tmpPosition.y = (m_uiRTGHeight >> 1) - 1; tmpPosition.y >= -(m_uiRTGHeight >> 1); tmpPosition.y = tmpPosition.y - 2)
+	//{
+	//	for (tmpPosition.x = -(m_uiRTGWidth >> 1); tmpPosition.x < (m_uiRTGWidth >> 1); tmpPosition.x = tmpPosition.x + 2)
+	//	{
+	//		*tmpPC = (char)getOrigU(transformRTG(tmpPosition, sightAim));
+	//		output.write(tmpPC, 1);
+	//	}
+	//}
+	//// V
+	//for (tmpPosition.y = (m_uiRTGHeight >> 1) - 1; tmpPosition.y >= -(m_uiRTGHeight >> 1); tmpPosition.y = tmpPosition.y - 2)
+	//{
+	//	for (tmpPosition.x = -(m_uiRTGWidth >> 1); tmpPosition.x < (m_uiRTGWidth >> 1); tmpPosition.x = tmpPosition.x + 2)
+	//	{
+	//		*tmpPC = (char)getOrigV(transformRTG(tmpPosition, sightAim));
+	//		output.write(tmpPC, 1);
+	//	}
+	//}
+
+	//delete tmpPC;
+	output.close();
 }
