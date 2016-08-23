@@ -103,7 +103,7 @@ public:
 	string getYUVPath() { return m_YUVFilePath; }
 
 	// > 载入原始YUV文件
-	bool importYUV();
+	bool importYUV(int numOfFrame = 0);
 
 	// > 获取YUV文件特定位置Y分量
 	unsigned char getOrigY(RTGPosition position);
@@ -126,7 +126,7 @@ public:
 	SPHPosition perspective(RTGPosition position);
 
 	// > 文件生成：透视投影 用于全景视频播放
-	void perspectiveYUV(string path, int width, int height, SPHPosition sightAim);
+	void perspectiveYUV(string path, double viewAngleWidth, double viewAngleHeight, SPHPosition sightAim);
 
 	// > 文件生成：透视投影 用于全景视频播放 <默认参数>
 	void perspectiveYUV(string path);

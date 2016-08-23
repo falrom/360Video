@@ -392,8 +392,9 @@ RTGPosition VRPicture::transformRTG(RTGPosition newRTGPosition, SPHPosition sigh
 
 /**
 > 导入原始YUV图片文件。需要异常处理。
+- numOfFrame	:	希望导入YUV文件的第几帧。从0开始算起。默认为0。
 */
-bool VRPicture::importYUV()
+bool VRPicture::importYUV(int numOfFrame)
 {
 	// Open file.
 	ifstream origYUV(m_YUVFilePath, ios::binary);
@@ -402,6 +403,8 @@ bool VRPicture::importYUV()
 		throw (string("Can't open YUV file: ") + m_YUVFilePath);
 	}
 	// Read.
+	int tmpGetPosi = numOfFrame * ((SIZE_OF_RTG >> 1) + SIZE_OF_RTG);
+	origYUV.seekg(tmpGetPosi, ios::beg);
 	m_ucOrigImageY = new unsigned char[SIZE_OF_RTG];
 	m_ucOrigImageU = new unsigned char[SIZE_OF_RTG >> 2];
 	m_ucOrigImageV = new unsigned char[SIZE_OF_RTG >> 2];
@@ -522,11 +525,26 @@ SPHPosition VRPicture::perspective(RTGPosition position)
 - heigh		:	生成图片的高度
 - sightAim	:	中心点的球坐标
 */
-void VRPicture::perspectiveYUV(string path, int width, int height, SPHPosition sightAim)
+void VRPicture::perspectiveYUV(string path, double viewAngleWidth, double viewAngleHeight, SPHPosition sightAim)
 {
-	// 宽高必须是偶数
-	if (( width % 2) != 0) {  width++; }
-	if ((height % 2) != 0) { height++; }
+	viewAngleWidth  = viewAngleWidth  * PI / 180; // DEG=>RAD
+	viewAngleHeight = viewAngleHeight * PI / 180;
+	int width = (int)abs(RADIUS_RAD * tan(viewAngleWidth / 2.0));
+	int height = (int)abs(RADIUS_RAD * tan(viewAngleHeight / 2.0));
+	width *= 2;
+	height *= 2;
+
+	// 宽高必须是4的倍数才能用来编码
+	int tmpWr = width  % 4;
+	int tmpHr = height % 4;
+	if (tmpWr != 0)
+	{
+		width  = width  + 4 - tmpWr;
+	}
+	if (tmpHr != 0)
+	{
+		height = height + 4 - tmpHr;
+	}
 
 	ofstream output;
 	output.open(path, ios::binary);
@@ -577,14 +595,14 @@ void VRPicture::perspectiveYUV(string path, int width, int height, SPHPosition s
 */
 void VRPicture::perspectiveYUV(string path)
 {
-	double viewAngleWidth  = 90 * PI / 180; // DEG=>RAD
-	double viewAngleHeight = 90 * PI / 180;
-	int _width  = (int)abs(RADIUS_RAD * tan(viewAngleWidth  / 2.0));
-	int _height = (int)abs(RADIUS_RAD * tan(viewAngleHeight / 2.0));
-	_width  *= 2;
-	_height *= 2;
+	//double viewAngleWidth  = 90 * PI / 180; // DEG=>RAD
+	//double viewAngleHeight = 90 * PI / 180;
+	//int _width  = (int)abs(RADIUS_RAD * tan(viewAngleWidth  / 2.0));
+	//int _height = (int)abs(RADIUS_RAD * tan(viewAngleHeight / 2.0));
+	//_width  *= 2;
+	//_height *= 2;
 
-	perspectiveYUV(path, _width, _height, m_Aim);
+	perspectiveYUV(path, 90, 90, m_Aim);
 }
 
 /**
