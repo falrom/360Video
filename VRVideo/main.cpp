@@ -29,6 +29,7 @@ int main(int argc, char *argv[])
 	}
 
 	int numOfFrames = atoi(argv[2]);
+	double step = (double)atoi(argv[3]);
 
 	cout << "YUV´æ·ÅÂ·¾¶£º	" << cVRP.getYUVPath() << endl;
 	cout << "Í¼Æ¬¿í¶È£º		" << cVRP.getRTGWidth() << endl;
@@ -52,6 +53,9 @@ int main(int argc, char *argv[])
 		cVRP.importYUV(i);
 		cout << endl << "Transforming frame " << i << "..." << endl;
 		cVRP.perspectiveYUV(string(".\\origPlayer") + to_string(i) + string(".yuv"));
+		SPHPosition tmpAim = cVRP.getAim();
+		tmpAim.lam += step;
+		cVRP.setAim(tmpAim);
 	}
 
 	// system("PAUSE");

@@ -120,16 +120,31 @@ public:
 	// > 按照全景图投影方式（Equirectangular）重新生成改变了中心点的新的YUV文件全景图（默认使用成员m_Aim）
 	void outputYUV(string path);
 
-	// ==================== 多种投影方式以及文件生成 ====================
-
-	// > 投影函数：透视投影 用于全景视频播放
+	// ==================== 更多投影方式以及文件生成 ====================
+	
+	///==================== 透视投影perspective ====================
+	// > 投影函数：逆透视投影 用于全景视频播放
 	SPHPosition perspective(RTGPosition position);
+
+	// > 投影函数：透视投影，输入球坐标，得到平面坐标。
+	RTGPosition perspective(SPHPosition position);
+
+	// > 参考点计算：根据视差，获取新的投影的直角坐标中某点在原投影直角坐标的对应位置。
+	RTGPosition tsfPerspective(RTGPosition newRTGPosition, SPHPosition sightAim);
+
+	// > 参考点计算：根据视差，获取新的投影的直角坐标中某点在原投影直角坐标的对应位置。（默认参数）
+	RTGPosition tsfPerspective(RTGPosition newRTGPosition);
 
 	// > 文件生成：透视投影 用于全景视频播放
 	void perspectiveYUV(string path, double viewAngleWidth, double viewAngleHeight, SPHPosition sightAim);
 
 	// > 文件生成：透视投影 用于全景视频播放 <默认参数>
 	void perspectiveYUV(string path);
+	
+	///==================== 其他投影方式。待添加。。。 ====================
+
+	///==================== 其他投影方式。待添加。。。 ====================
+
 	
 	// ==================== 测试、调试用函数 ====================
 

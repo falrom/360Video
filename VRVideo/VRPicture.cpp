@@ -500,7 +500,7 @@ void VRPicture::outputYUV(string path)
 }
 
 /**
-> 投影函数：透视投影（perspective projection），在球心观察球面时画面的平面投影。
+> 投影函数：逆透视投影（perspective projection），在球心观察球面时画面的平面投影。
 > 输入投影平面某点坐标值，得到在球面上对应点的坐标值
 - position	:	在投影平面上的坐标值
 */
@@ -508,13 +508,60 @@ SPHPosition VRPicture::perspective(RTGPosition position)
 {
 	SPHPosition result;
 
+	// 计算
 	double tmplam = atan(position.x / RADIUS_RAD);
+	double tmpphi = atan(position.y / RADIUS_RAD * cos(tmplam));
+
+	// 角度单位转换
 	result.lam = tmplam * 180 / PI;
-	result.phi = atan(position.y / RADIUS_RAD * cos(tmplam)) * 180 / PI;
+	result.phi = tmpphi * 180 / PI;
 	// result.phi = atan(position.y / RADIUS_RAD) * 180 / PI;
 
 	return result;
 	// return SPHPosition();
+}
+
+/**
+> 投影函数：逆透视投影（perspective projection），在球心观察球面时画面的平面投影。
+> 输入球面某点坐标值，得到在投影平面上对应点的坐标值
+- position	:	在球面上的坐标值
+*/
+RTGPosition VRPicture::perspective(SPHPosition position)
+{
+	RTGPosition result;
+	
+	// 角度单位转换
+	double tmplam = position.lam * PI / 180;
+	double tmpphi = position.phi * PI / 180;
+
+	// 计算
+	result.x = RADIUS_RAD * tan(tmplam);
+	result.y = RADIUS_RAD / cos(tmplam) * tan(tmpphi);
+
+	return result;
+	// return RTGPosition();
+}
+
+/**
+> 参考点计算：根据视差，获取新的投影的直角坐标中某点在原投影直角坐标的对应位置。
+> 针对透视投影
+- newRTGPosition	:	新的投影中，该点的直角坐标
+- sightAim			:	两次投影的视差
+*/
+RTGPosition VRPicture::tsfPerspective(RTGPosition newRTGPosition, SPHPosition sightAim)
+{
+	return perspective(transformSPH(perspective(newRTGPosition), sightAim));
+	// return RTGPosition();
+}
+
+/**
+> 参考点计算：根据视差，获取新的投影的直角坐标中某点在原投影直角坐标的对应位置。（默认参数）
+> 针对透视投影
+- newRTGPosition	:	新的投影中，该点的直角坐标
+*/
+RTGPosition VRPicture::tsfPerspective(RTGPosition newRTGPosition)
+{
+	return tsfPerspective(newRTGPosition, m_Aim);
 }
 
 /**
